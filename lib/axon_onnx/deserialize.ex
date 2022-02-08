@@ -337,6 +337,9 @@ defmodule AxonOnnx.Deserialize do
         "Round" ->
           to_axon_nx(op_node, axon, params, used_params, &Nx.round/1)
 
+	"Slice" ->
+	  to_axon_slice(op_node, axon, params, used_params)
+
         "Selu" ->
           to_axon_activation(op_node, axon, params, used_params, :selu,
             alpha: {"alpha", 1.67326319217681884765625},
@@ -1209,6 +1212,14 @@ defmodule AxonOnnx.Deserialize do
     updated_axon = Map.put(axon, output_name, const)
 
     {updated_axon, used_params}
+  end
+
+  defp to_axon_slice(node = %Node{op_type: "Slice"}, axon, params, used_params) do
+    [data, starts, ends, axes, steps] = node.input
+    [output_name] = node.output
+    IO.inspect(node)
+    IO.inspect(axon)
+    {axon, used_params}
   end
 
   # TODO: This currently won't pass any Node tests because reshape
