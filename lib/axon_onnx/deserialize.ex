@@ -337,8 +337,8 @@ defmodule AxonOnnx.Deserialize do
         "Round" ->
           to_axon_nx(op_node, axon, params, used_params, &Nx.round/1)
 
-	"Slice" ->
-	  to_axon_slice(op_node, axon, params, used_params)
+        "Slice" ->
+          to_axon_slice(op_node, axon, params, used_params)
 
         "Selu" ->
           to_axon_activation(op_node, axon, params, used_params, :selu,
@@ -1214,12 +1214,24 @@ defmodule AxonOnnx.Deserialize do
     {updated_axon, used_params}
   end
 
+  # https://github.com/onnx/onnx/blob/5cf5feef5ec3fd5527b2fdb6c29780e3b705059f/docs/Operators.md#slice
   defp to_axon_slice(node = %Node{op_type: "Slice"}, axon, params, used_params) do
-    [data, starts, ends, axes, steps] = node.input
+    parent = Enum.map(node.input, &axon!(&1, axon))
     [output_name] = node.output
-    IO.inspect(node)
-    IO.inspect(axon)
-    {axon, used_params}
+
+    op = fn data, starts, ends, axes, steps ->
+      # TODO(dmorn): include step
+      [axes, starts, ends]
+      |> Enum.map(&Nx.to_flat_list/1)
+      |> Enum.zip()
+      |> Enum.reduce(data, fn {axis, starts, ends}, acc ->
+        Nx.slice_axis(acc, starts, ends - starts + 1, axis)
+      end)
+    end
+
+    layer = Axon.layer(parent, op, {}, %{}, output_name)
+    updated_axon = Map.put(axon, output_name, layer)
+    {updated_axon, used_params}
   end
 
   # TODO: This currently won't pass any Node tests because reshape
