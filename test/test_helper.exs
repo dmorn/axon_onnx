@@ -77,7 +77,7 @@ defmodule OnnxTestHelper do
       input_paths = Path.wildcard(Path.join([data_path, "input_*.pb"]))
       output_paths = Path.wildcard(Path.join([data_path, "output_*.pb"]))
 
-      inp_tensors = Enum.map(input_paths, &pb_to_tensor/1)
+      inp_tensors = Enum.map(input_paths, &pb_to_tensor/1) |> IO.inspect(label: ~s/input tensor/)
       out_tensors = Enum.map(output_paths, &pb_to_tensor/1)
 
       # TODO: Update with better container support
@@ -92,6 +92,7 @@ defmodule OnnxTestHelper do
           [_ | _] = inputs ->
             Axon.predict(model, params, List.to_tuple(inputs))
         end
+	|> IO.inspect(label: "actual output", structs: false)
 
       case out_tensors do
         [expected_output] ->
